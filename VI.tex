@@ -1,0 +1,248 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX Example: Project Report
+%
+% Source: http://www.howtotex.com
+%
+% Feel free to distribute this example, but please keep the referral
+% to howtotex.com
+% Date: March 2011
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% How to use writeLaTeX:
+%
+% You edit the source code here on the left, and the preview on the
+% right shows you the result within a few seconds.
+%
+% Bookmark this page and share the URL with your co-authors. They can
+% edit at the same time!
+%
+% You can upload figures, bibliographies, custom classes and
+% styles using the files menu.
+%
+% If you're new to LaTeX, the wikibook is a great place to start:
+% http://en.wikibooks.org/wiki/LaTeX
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Edit the title below to update the display in My Documents
+%\title{Project Report}
+%
+%%% Preamble
+\documentclass[paper=a4, fontsize=11pt, 12pt]{scrartcl}
+\usepackage[T1]{fontenc}
+\usepackage{fourier}
+
+\usepackage[english]{babel}															% English language/hyphenation
+\usepackage[protrusion=true,expansion=true]{microtype}
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage[pdftex]{graphicx}
+\graphicspath{{figures/}}
+\usepackage{url}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Added by Ludi
+\usepackage[detect-all]{siunitx}
+\usepackage{booktabs}
+% \usepackage{makecell}
+% \usepackage{dcolumn}
+% \newcolumntype{d}[1]{D{.}{.}{#1}}
+% \usepackage{tabular}
+\usepackage{fourier}
+\usepackage{array}
+\usepackage{makecell}
+% \usepackage{cite}
+% \usepackage[style=alphabetic,sorting=ynt]{biblatex}
+% \bibliography{bibliography}{}
+% \bibliographystyle{plain}
+% \addbibresource{bibliography.bib}
+\usepackage{amsmath,amsfonts,amsthm, amssymb}
+% \usepackage{hyperref}
+\let\oldref\ref
+\renewcommand{\ref}[1]{(\oldref{#1})}
+
+%%% Custom sectioning
+\usepackage{sectsty}
+\allsectionsfont{\centering \normalfont\scshape}
+
+
+%%% Custom headers/footers (fancyhdr package)
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead{}											% No page header
+\fancyfoot[L]{}											% Empty
+\fancyfoot[C]{}											% Empty
+\fancyfoot[R]{\thepage}									% Pagenumbering
+\renewcommand{\headrulewidth}{0pt}			% Remove header underlines
+\renewcommand{\footrulewidth}{0pt}				% Remove footer underlines
+\setlength{\headheight}{13.6pt}
+
+%%%%% VARIABLES
+\newcommand{\z}{\mathbf{z}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\q}{q_{\Psi}(\z)}
+\newcommand{\p}{p_{\theta}(\z | \x)}
+\newcommand{\KL}{\text{KL}}
+% \def\equationautorefname~#1\null{Equation (#1)\null}
+
+%%% Equation and float numbering
+\numberwithin{equation}{section}		% Equationnumbering: section.eq#
+\numberwithin{figure}{section}			% Figurenumbering: section.fig#
+\numberwithin{table}{section}				% Tablenumbering: section.tab#
+
+
+%%% Maketitle metadata
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} 	% Horizontal rule
+
+\title{
+		%\vspace{-1in}
+		\usefont{OT1}{bch}{b}{n}
+		\normalfont \normalsize \textsc{Notes on Variational Inference} \\ [25pt]
+		\horrule{0.5pt} \\[0.4cm]
+		\huge Notes On \\ Variational Inference \\
+		\horrule{2pt} \\[0.5cm]
+}
+\author{
+		\normalfont 								\normalsize
+        Ludwig Winkler\\[-3pt]		\normalsize
+        \today
+}
+\date{}
+
+
+%%% Begin document
+\begin{document}
+\maketitle
+\begin{abstract}
+Variational Bayesian Inference is a family of techniques for approximating intractable integrals arising in Bayesian inference and machine learning.
+They are typically used in complex statistical models consisting of observed variables as well as unknown parameters and latent variables, with various sorts of relationships among the three types of random variables. \\
+\end{abstract}
+
+\section{Problem Setting}
+
+Let's assume that we have a set of observations $x$ which we know where somehow produced by a process.
+We can call our set of observations $\mathbf{x}$ our data set.
+
+But the process that generated the observations $\x$ also has a set of latent, random variables $\z$ which we cannot observe.
+An intuitive example would be a classification task where we have an observation $\x$ and a label $\z$.
+A standard classifier would construct a decision boundary from which we could obtain the probablity $p(\z|\x)$.
+An analogy would be a neural network classifier with a final softmax layer which outputs a probability of a class, dependent on the input.
+
+Variational Inference (VI) trains a generative model on the data which constructs a joint probability $p(\x, \z)$ from which we can conveniently infer much more information than just the class-conditional probability.
+By building the entire generative process $p(\x, \z)$ and not just the class-dependent probability $p(\z|\x)$ we have the entire generative process at our disposal.
+Take for example studying for an exam: It is usually way better to actually understand the entire topic intrinsically than just learning by heart a mapping from some question to some answer.
+
+Furthermore we can assume that the true model $p(\x, \z)$ has a set of parameters $\theta$ which parameterize the joint probability density function (PDF) and which we don't know.
+It is important to note that is helpful to assume that joint PDF $p(\x, \z)$ consists of an arbitrary combination of parameterized PDFs.
+This combination of parameterized PDFs could be as simple as two normal distributions with independent parameters or a complicated combination of complex PDFs.
+
+Variational Inference aims to find suitable parameters $\theta$ which explain the generation of the observations $\x$ with the latent $\z$.
+Using the analogy of images and labels, VI tries to find parameters which create great pictures for any label.
+Since we only receive the images, more generally $\x$, we want to model the generative process that produced them from labels, more generally $\z$, which we can't observe.
+Once we modeled the 'forward' process from $\z$ to $\x$ we can also go 'backward' and infer $\z$, the label, from $\x$, the image.
+This is possible because we are working with a generative model.
+
+VI therefore aims to maximize the evidence of the observations $\x$ by finding the right parameter $\theta_{\text{max}}$.
+If we were to find the right parameters $\theta_{\text{max}}$ we could generate valid observations $\x$ for any $\z$.
+\begin{align}
+     \theta_{\text{max}} = \text{argmax}_{\theta} \log p_{\theta}(\x)
+\end{align}
+
+Another nice thing to know, given some observations $\x$, for example images, would be to know the latent factors $\z$, for example the labels, that generated them.
+So we would like to know
+\begin{align}
+     p_{\theta_{\text{max}}}(\z | \x) = \frac{p_{\theta_{\text{max}}}(\x, \z)}{ \int p_{\theta_{\text{max}}}(\x, \z) d\z} = \frac{p_{\theta_{\text{max}}}(\x, \z)}{p_{\theta_{\text{max}}}(\x)}
+\end{align}
+
+The problem is that the denominator $\int p_{\theta_{\text{max}}}(\x, \z) d\z$ is usually an intractable integral.
+It might work for simpler models but for models which try to infer something on high-dimensional data, calculating the integral becomes quickly very difficult.
+Due to the usually intractable denominator it is difficult to correctly estimate $p_{\theta_{\text{max}}}(\z | \x)$.
+
+Because we condition the distribution $p_{\theta_{\text{max}}}(\z | \x)$ on $\x$ we have to calculate the evidence $\int p_{\theta_{\text{max}}}(\x, \z) d\z$.
+In a nutshell, the trick of VI is to try to estimate an 'unconditional' distribution $q_{\Psi}(\z)$ which doesn't require an intractable integral like $\int p_{\theta_{\text{max}}}(\x, \z) d\z$ does.
+
+\newpage
+\section{ELBO}
+
+The Kullback-Leibler-Divergence $\KL\left(q(\x)||p(\x)\right)$ measures the distance between two probability distributions $q(\x)$ and $p(\x)$.
+In variational inference it is used as a criterion with which we minimize the difference between $\q$ and $\p$.
+
+\begin{align}
+	\min_{\Psi} \	 \KL\left(\q \ || \ \p\right) &= \mathbb{E}_{\q}\left[ \log \frac{\q}{\p} \right] \label{eq:KLMinimzationOriginal} \\
+		&= \mathbb{E}_{\q} \left[ \log \q \right] - \mathbb{E}_{\q} \left[ \log \p \right] \\
+		&= \mathbb{E}_{\q} \left[ \log \q \right] - \mathbb{E}_{\q} \left[ \log \frac{p_{\theta}(\x,\z)}{p_{\theta}(\x)} \right] \\
+		&= \mathbb{E}_{\q} \left[ \log \q \right] - \mathbb{E}_{\q} \left[ \log p_{\theta}(\x,\z) \right] + \mathbb{E}_{\q} \left[ \log p_{\theta}(\x) \right] \\
+		&= \underbrace{\mathbb{E}_{\q} \left[ \log \q \right] - \mathbb{E}_{\q} \left[ \log p_{\theta}(\x,\z) \right]}_{ - \text{ELBO}\left[\q \right]} + \log p_{\theta}(\x) \label{eq:ELBOOptimization} \\
+		&= \mathbb{E}_{\q} \left[ \log \frac{\q}{p_{\theta}(\x,\z)} \right] + \log p_{\theta}(\x) \\
+		&= \KL \left(\q \ || \ p_{\theta}(\x,\z) \right) + \log p_{\theta}(\x) \label{eq:KLMinimization}
+\end{align}
+
+We can intuitively see from \ref{eq:ELBOOptimization} and \ref{eq:KLMinimization} that we can reformulate the minimization problem as a minimization of the KL-Divergence between the variational distribution $\q$ and $p_{\theta}(\x,\z)$.
+The term $\log p_{\theta}(\x)$ is a constant with respect to our variational distribution $\q$.
+
+The name 'Evidence Lower Bound' (ELBO) is derived from a property of the Kullback-Leibler-Divergence, namely that $\KL(q(\x) \ || \ p(\x)) \geq 0$ for any $q(\x)$ and $p(\x)$.
+For variational inference this implicates the following identity:
+
+\begin{align}
+	\KL\left(\q \ || \ \p\right) \geq 0 \\
+	\KL \left(\q \ || \ p_{\theta}(\x,\z) \right) + \log p_{\theta}(\x) \geq 0 \\
+	-\text{ELBO} + \log p_{\theta}(\x) \geq 0 \\
+	\log p_{\theta}(\x) \geq \text{ELBO} \label{eq:BoundedELBO}
+\end{align}
+
+In order to minimze our original objective in \ref{eq:KLMinimzationOriginal} we have to maximize the ELBO in \ref{eq:ELBOOptimization}.
+With the property of the KL-Divergence, namely $\KL \left( q(\x) \ || \ p(\x) \right) \geq 0$, we can see that the ELBO is bounded from above by the log-probability of $p_{\theta}(\x)$.
+So we can only maximize the ELBO up to the log-probability of $p_{\theta}(\x)$.
+
+In order to minimize our original objective in \ref{eq:KLMinimzationOriginal} we will try to approximate the joint distribution $p_{\theta}(\x, \z)$ with a simpler distribution $\q$.
+The KL-Divergence is always $\geq 0$ so we will be always left with the constant $\log p_{\theta}(\x)$ which we will not be able to optimize.
+In a nutshell by approximating the complicated conditional distribution $\p$ with a simpler $\q$ we don't have to deal with the intractable integral but we also obtain a term in our optimization problem which we cannot reduce.
+
+To gain more intuition about the ELBO we can go two steps back and look at the following:
+\begin{align}
+	\text{ELBO}\left( \q \right) &= \mathbb{E}_{\q} \left[ \log p_{\theta}(\x,\z) \right] - \mathbb{E}_{\q} \left[ \log \q \right] \\
+		&= \mathbb{E}_{\q} \left[ \log \frac{p_{\theta}(\x,\z) p_{\theta}(\z)}{p_{\theta}(\z)} \right] - \mathbb{E}_{\q} \left[ \log \q \right] \\
+		&= \mathbb{E}_{\q} \left[ \log p_{\theta}(\x|\z) \right] + \mathbb{E}_{\q} \left[ p_{\theta}(\z)\right] - \mathbb{E}_{\q} \left[ \log \q \right]\\
+		&= \mathbb{E}_{\q} \left[ \log p_{\theta}(\x|\z) \right] - \KL\left(\q \ || \ p_{\theta}(\z) \right) \label{eq:ELBO1}
+\end{align}
+
+
+Keeping in mind that we have to maximize the ELBO term in \ref{eq:ELBOOptimization} can furthermore see in \ref{eq:ELBO1} that $\q$ will be balanced between putting weight to the likelihood as well as the prior.
+The expected likelihood emphasizes $\q$ putting its probability on configurations of $\z$ that explain the observed data $\x$.
+If too much emphasis is paid to the expected likelihood the KL-Divergence between the prior $p_{\theta}(\z)$ and $\q$ will grow.
+The ELBO term therefore is encouraged to find a balanced approximation of the prior $p_{\theta}(\z)$ and the likelihood $p_{\theta}(\x | \z)$.
+This is corroborated by the fact that we try to approximate the entire joint probability $p_{\theta}(\x, \z)$ with $\q$.
+
+\newpage
+\section{Stochastic Gradient Optimization}
+
+Similarly to how neural networks are nowadays trained with stochastic gradient descent we can train variational inference algorithms with stochastic gradient otpimization \cite{wingate2013automated}.
+Recall from \ref{eq:ELBOOptimization} that in order to minimize our original objective we need to maximize the Evidence Lower Bound.
+
+\newcommand{\nablapsi}{\nabla_{\Psi}}
+
+\begin{align}
+	\nablapsi \left[ - \text{ELBO}\left(\q \right) \right] &= \nablapsi \left[ \KL \left(\q \ || \ p_{\theta}(\x,\z) \right) \right] \\
+	 &= \nablapsi \left[ \int_\z \q \log \frac{\q}{p_{\theta}(\x, \z)}  	\right] \\
+	 &= \int_\z \nablapsi \left[ \q \right] \log \frac{\q}{p_{\theta}(\x, \z)} + \int_\z \q \nablapsi \left[ \log \frac{\q}{p_{\theta}(\x, \z)} \right] \\
+	 &= \int_\z \nablapsi \left[ \q \right] \log \frac{\q}{p_{\theta}(\x, \z)} + \int_\z \q \left( \nablapsi \left[ \log \q \right] - \underbrace{\nablapsi \left[ p_{\theta}(\x, \z) \right]}_{=0} \right) \\
+	 &= \int_\z \nablapsi \left[ \q \right] \log \frac{\q}{p_{\theta}(\x, \z)} + \underbrace{\int_\z \q \nablapsi \left[ \log \q \right]}_{=0} \\
+	 &= \int_\z \q \nablapsi \left[ \log \q \right] \log \frac{\q}{p_{\theta}(\x, \z)} \\
+	 &\approx \frac{1}{N} \sum_{\z_j}^N \nablapsi \left[ q_{\Psi}(\z_j) \right] \left( \log \frac{q_{\Psi}(\z_j)}{p_{\theta}(\x, \z_j)} + K \right)
+\end{align}
+
+This gives us a training algorithm in which we don't have to use the entire set, but with which we can train batch by batch just like stochastic gradient descent in neural networks.
+
+The identity $\nabla \log p(x) = \frac{\nabla p(x)}{p(x)}$ was used for
+\begin{align}
+		\int_\z \q \nablapsi \left[ \log \q \right] &= \int_\z \nablapsi [\q] \\
+		&= \nablapsi \left[ \int_\z \q \right] \\
+		&= \nablapsi [1] \\
+		&= 0
+\end{align}
+
+
+\newpage
+\bibliography{bibliography}
+\bibliographystyle{ieeetr}
+
+
+\end{document}
